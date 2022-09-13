@@ -167,7 +167,7 @@ end
 
 using LinearAlgebra
 
-function time_iteration_3(model;
+function time_iteration(model;
     T=500,
     K=10,
     tol_ε=1e-8,
@@ -175,6 +175,8 @@ function time_iteration_3(model;
     verbose=false,
     improve=true
 )
+
+    version_check()
 
     N = length(model.grid)
     x0 = GArray(model.grid, [SVector(model.x) for n=1:N])

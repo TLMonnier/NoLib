@@ -1,7 +1,7 @@
 ## Today's course
 
 - Intro to Julia
-  - very quick overiw, explanations on demand
+  - very quick overiew, explanations on demand
   - show how to use several common algorithms
 - Perturbation
 - Time Iteration (with/without improvements)

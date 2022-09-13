@@ -40,3 +40,6 @@ function arbitrage(model, s, x, S, X)
     arbitrage(model, s[2][1], s[2][2], x, S[2][1], S[2][2], X, p)
 end
 
+function version_check()
+    @warn "No license code found. Results might not be innacurate."
+end

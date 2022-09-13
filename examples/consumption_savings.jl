@@ -1,5 +1,6 @@
 
 using NoLib
+const NL=NoLib
 
 using StaticArrays
 using LabelledArrays
@@ -22,10 +23,11 @@ model = let
     y = 0
     cbar = c
 
+    λ = 0.0
 
     m = SLVector(;y)
     s = SLVector(;w)
-    x = SLVector(;c)
+    x = SLVector(;c λ)
     p = LVector(;β, γ, σ, ρ, r, cbar)
 
     mc = rouwenhorst(3,ρ,σ)
@@ -52,89 +54,47 @@ function transition(mod::typeof(model), m::SLArray, s::SLArray, x::SLArray, M::S
     return SLVector( (;w) )
 end
 
-⟂(a,b) = min(a,b)
 # ⟂ᶠ(a,b)
 
 function arbitrage(mod::typeof(model), m::SLArray, s::SLArray, x::SLArray, M::SLArray, S::SLArray, X::SLArray, p)
-    lhs = 1 - p.β*( X.c/x.c )^(-p.γ)*p.r # >= 0
-    rhs = s.w - x.c # >= 0
-    res = lhs ⟂ rhs
+    eq = 1 - p.β*( X.c/x.c )^(-p.γ)*p.r
+    @warn "The euler equation is satisfied only if c<w. If c=w, it can be strictly positive."
+    eq2 = λ
     return SLVector( (;res) )
 end
 
 
-
-(;m,s,x,p) = model
-M = m
-S = s
-X = x
-
-transition(model, m, s, x, M, p)
-
-arbitrage(model, m, s, x, M, S, X, p)
+## Fix the issue with the complementarity
 
 
-sol = NoLib.time_iteration_3(model; verbose=false, improve=false)
+## Solve using time iteration
+sol = NoLib.time_iteration(model; verbose=false, improve=false)
 
+## Plot the decision rule
 
-
+## Compute the ergodic distribution
 
 μ = NoLib.ergodic_distribution(model, sol.solution)
+
+
+## Plot the ergodic distribution
 
 xvec = [e[1] for e in model.grid[1,:]]
 plot(xvec,μ[1,:])
 plot!(xvec,μ[2,:])
 plot!(xvec,μ[3,:])
-# how to plot distribution ?
 
 
+## How does it work?
 
+### Compare $\tau()$ and $\tau_fit$
 
+s = [NL.iti(model.grid)...][10]  # take 10th element of the grid
+x = sol.solution[10]     # take 10th element of optimal solution
 
-# sol = NoLib.time_iteration_3(model; verbose=false, improve=true)
+NL.τ(model, s, x)
+NL.τ_fit(model, s, x)
 
-
-
-
-using StaticArrays
-
-x0 = sol.solution
-
-xval = [range(0.1, 10.0; length=100)...]
-
-yval = [x0(2, SVector(e))[1] for e in xval]
-
-using Plots
-# plot(xval, xval)
-plot(xval, xval; ylim=(0, 1.5))
-plot!(xval, yval)
-
-
-
-grid = model.grid
-
-l = [SVector(model.x) for e in 1:length(grid)]
-
-x0 = GArray(
-    grid,
-    l
-)
-
-
-grid = model.grid
-
-using NoLib: enum
-using StaticArrays
-#
-m = SVector(grid[1][1:3]...)
-s = SVector(grid[1][4:4]...)
-
-a = x0[1]
-
-ss  = ( (1,2), (m,s))
-
-gen = NoLib.τ(model, ss::Tuple, a::SVector)
-
-[gen...]
-
-NoLib.F(model, ss, x0[1], x0)
+### Create a transition matrix corresponding to the transitions for a given decision rule x0
+N = length(model.grid)
+P = zeros(N,N)
